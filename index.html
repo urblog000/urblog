@@ -1,492 +1,340 @@
 <!doctype html>
 <html lang="ro">
 <head>
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width,initial-scale=1">
-    <meta name="description" content="URBlog - Scrie și citește postări scurte.">
-    <meta name="robots" content="index, follow">
-    <link rel="canonical" href="https://urblog.example.com/">
-    <title>UrBlog</title>
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
-    <style>
-        :root {
-            --header-gradient: linear-gradient(to right, #c2cfd8, #98d6f0, #428bca);
-            --card-bg: #d1d1d1;
-            --white: #ffffff;
-            --text: #000000;
-            --radius: 14px;
-            --muted: #555555;
-            --accent: #428bca;
-            --error: #dc3545;
-            --success: #28a745;
-            font-family: Inter, system-ui, -apple-system, Segoe UI, Roboto, 'Helvetica Neue', Arial, sans-serif;
-        }
-        * { box-sizing: border-box; margin: 0; padding: 0; }
-        body { background: #f0f2f5; color: var(--text); line-height: 1.5; }
-        header { 
-            background: var(--header-gradient); 
-            display: flex; align-items: center; justify-content: space-between; 
-            padding: 12px 24px; color: var(--white);
-        }
-        header .left, header .center, header .right { display: flex; align-items: center; }
-        header .left { flex: 0 0 auto; font-size: 24px; font-weight: bold; cursor: pointer; }
-        header .center { flex: 1; justify-content: center; font-size: 24px; font-weight: bold; }
-        header .right { gap: 10px; }
-        header .right .profile-pic {
-            width: 40px; height: 40px; border-radius: 50%; overflow: hidden; 
-            background: var(--white); display: grid; place-items: center; 
-            color: var(--muted); font-size: 12px; cursor: pointer;
-        }
-
-        main { padding: 20px; }
-        .post-card { 
-            background: var(--card-bg); border-radius: var(--radius); 
-            padding: 20px; max-width: 600px; margin: 20px auto;
-        }
-        .post-header { display: flex; align-items: center; gap: 14px; margin-bottom: 14px; }
-        .post-header .profile-pic {
-            width: 36px; height: 36px; border-radius: 50%; overflow: hidden; 
-            background: var(--white); display: grid; place-items: center; 
-            color: var(--muted); font-size: 12px;
-        }
-        .post-header .username { font-size: 20px; font-weight: bold; color: var(--text); }
-        .post-header .time { font-size: 13px; color: var(--muted); }
-        
-        .post-content { 
-            background: var(--white); padding: 16px; border-radius: var(--radius); 
-            font-size: 16px; color: var(--text); margin-bottom: 10px; 
-            white-space: pre-wrap; 
-        }
-
-        /* Comentarii */
-        .comment-section { margin-top: 15px; border-top: 1px solid #ccc; padding-top: 10px; }
-        .comment-item { 
-            margin-bottom: 8px; padding: 8px; border-left: 3px solid var(--accent); 
-            background: #f8f8f8; border-radius: 4px; font-size: 14px;
-        }
-        .comment-author { font-weight: bold; color: var(--accent); margin-right: 5px; }
-        .comment-time { font-size: 12px; color: var(--muted); margin-left: 5px; }
-        .comment-form { display: flex; gap: 5px; margin-top: 10px; }
-        .comment-form input { border-radius: var(--radius); border: 1px solid #ccc; padding: 10px; flex-grow: 1; }
-
-        /* Composer & Auth */
-        .composer, .auth-form {
-            margin: 30px auto; max-width: 600px; background: var(--white); 
-            border-radius: var(--radius); padding: 20px; 
-            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-        }
-        .composer h3, .auth-form h3 { margin-bottom: 12px; color: var(--text); }
-        .composer label, .auth-form label { display: block; margin-top: 12px; font-weight: 600; color: var(--text); }
-        .composer input, .composer textarea, .auth-form input { 
-            width: 100%; padding: 10px; margin-top: 6px; 
-            border: 1px solid #ccc; border-radius: var(--radius); font-size: 14px; 
-        }
-        .composer textarea { min-height: 120px; resize: vertical; }
-        .composer .row, .auth-form .row { display: flex; gap: 10px; margin-top: 16px; }
-        .btn { padding: 10px 14px; border: none; border-radius: var(--radius); cursor: pointer; font-size: 14px; }
-        .btn-primary { background: var(--accent); color: var(--white); }
-        .btn-primary:hover { background: #357bd1; }
-        .btn-ghost { background: transparent; border: 1px solid #aaa; color: var(--text); }
-        .btn-ghost:hover { background: #ddd; transition: 0.2s ease-in-out; }
-        .message.error { color: var(--error); }
-        .message.success { color: var(--success); }
-
-        /* Loader */
-        .loader { text-align:center; padding:20px; font-size:16px; color: var(--muted); }
-
-        footer { margin-top: 40px; text-align: center; padding: 20px; color: var(--muted); }
-    </style>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="description" content="URBlog - Scrie și citește postări scurte.">
+<title>URBlog</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
+<style>
+:root {
+    --header-gradient: linear-gradient(to right, #c2cfd8, #98d6f0, #428bca);
+    --card-bg: #d1d1d1;
+    --white: #ffffff;
+    --text: #000000;
+    --radius: 14px;
+    --muted: #555555;
+    --accent: #428bca;
+    --error: #dc3545;
+    --success: #28a745;
+    font-family: Inter, system-ui, -apple-system, Segoe UI, Roboto, 'Helvetica Neue', Arial, sans-serif;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { background: #f0f2f5; color: var(--text); line-height: 1.5; }
+header { 
+    background: var(--header-gradient); 
+    display: flex; align-items: center; justify-content: space-between; 
+    padding: 12px 24px; color: var(--white);
+}
+header .left, header .center, header .right { display: flex; align-items: center; }
+header .left { flex: 0 0 auto; font-size: 24px; font-weight: bold; cursor: pointer; visibility:hidden; }
+header .center { flex: 1; justify-content: center; font-size: 24px; font-weight: bold; }
+header .right { gap: 10px; }
+header .right .profile-pic {
+    width: 40px; height: 40px; border-radius: 50%; overflow: hidden; 
+    background: var(--white); display: grid; place-items: center; 
+    color: var(--muted); font-size: 12px; cursor: pointer;
+}
+main { padding: 20px; }
+.post-card { 
+    background: var(--card-bg); border-radius: var(--radius); 
+    padding: 20px; max-width: 600px; margin: 20px auto;
+}
+.post-header { display: flex; align-items: center; gap: 14px; margin-bottom: 14px; }
+.post-header .profile-pic {
+    width: 36px; height: 36px; border-radius: 50%; overflow: hidden; 
+    background: var(--white); display: grid; place-items: center; 
+    color: var(--muted); font-size: 12px;
+}
+.post-header .username { font-size: 20px; font-weight: bold; color: var(--text); }
+.post-header .time { font-size: 13px; color: var(--muted); }
+.post-content { 
+    background: var(--white); padding: 16px; border-radius: var(--radius); 
+    font-size: 16px; color: var(--text); margin-bottom: 10px; 
+    white-space: pre-wrap; 
+}
+.comment-section { margin-top: 15px; border-top: 1px solid #ccc; padding-top: 10px; }
+.comment-item { 
+    margin-bottom: 8px; padding: 8px; border-left: 3px solid var(--accent); 
+    background: #f8f8f8; border-radius: 4px; font-size: 14px;
+}
+.comment-author { font-weight: bold; color: var(--accent); margin-right: 5px; }
+.comment-time { font-size: 12px; color: var(--muted); margin-left: 5px; }
+.comment-form { display: flex; gap: 5px; margin-top: 10px; }
+.comment-form input { border-radius: var(--radius); border: 1px solid #ccc; padding: 10px; flex-grow: 1; }
+.composer, .auth-form {
+    margin: 30px auto; max-width: 600px; background: var(--white); 
+    border-radius: var(--radius); padding: 20px; 
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+}
+.composer h3, .auth-form h3 { margin-bottom: 12px; color: var(--text); }
+.composer label, .auth-form label { display: block; margin-top: 12px; font-weight: 600; color: var(--text); }
+.composer input, .composer textarea, .auth-form input { 
+    width: 100%; padding: 10px; margin-top: 6px; 
+    border: 1px solid #ccc; border-radius: var(--radius); font-size: 14px; 
+}
+.composer textarea { min-height: 120px; resize: vertical; }
+.composer .row, .auth-form .row { display: flex; gap: 10px; margin-top: 16px; }
+.btn { padding: 10px 14px; border: none; border-radius: var(--radius); cursor: pointer; font-size: 14px; }
+.btn-primary { background: var(--accent); color: var(--white); }
+.btn-primary:hover { background: #357bd1; }
+.btn-ghost { background: transparent; border: 1px solid #aaa; color: var(--text); }
+.btn-ghost:hover { background: #ddd; transition: 0.2s ease-in-out; }
+.message.error { color: var(--error); }
+.message.success { color: var(--success); }
+.submit-comment-btn { padding: 10px 14px; font-size: 14px; white-space: nowrap; }
+footer { margin-top: 40px; text-align: center; padding: 20px; color: var(--muted); }
+</style>
 </head>
 <body>
-    <header>
-        <div class="left" id="addPostBtn" style="visibility: hidden;">＋</div>
-        <h1 class="center">URBLOG</h1>
-        <div class="right">
-            <div class="profile-pic" id="headerProfilePic">👤</div>
-            <button id="logoutBtn" class="btn btn-ghost" style="display:none;">Ieșire</button>
+<header>
+    <div class="left" id="addPostBtn">＋</div>
+    <div class="center">URBLOG</div>
+    <div class="right">
+        <div class="profile-pic" id="headerProfilePic">👤</div>
+        <button id="logoutBtn" class="btn btn-ghost" style="display:none;">Ieșire</button>
+    </div>
+</header>
+<main>
+<section class="auth-form" id="authSection">
+    <h3>Autentificare / Înregistrare</h3>
+    <div id="loginForm">
+        <label for="authEmail">Email</label>
+        <input type="email" id="authEmail" placeholder="email@exemplu.ro">
+        <label for="authPassword">Parolă</label>
+        <input type="password" id="authPassword" placeholder="******">
+        <p id="authMessage" class="message error" style="margin-top: 10px;"></p>
+        <div class="row">
+            <button type="button" id="loginBtn" class="btn btn-primary">Autentificare</button>
+            <button type="button" id="signupBtn" class="btn btn-ghost">Înregistrare</button>
         </div>
-    </header>
+    </div>
+</section>
 
-    <main>
-        <!-- SECȚIUNEA DE AUTENTIFICARE/ÎNREGISTRARE -->
-        <section class="auth-form" id="authSection">
-            <h3>Autentificare / Înregistrare</h3>
-            <div id="loginForm">
-                <label for="authEmail">Email</label>
-                <input type="email" id="authEmail" placeholder="email@exemplu.ro">
-                <label for="authPassword">Parolă</label>
-                <input type="password" id="authPassword" placeholder="******">
-                <p id="authMessage" class="message error" style="margin-top: 10px;"></p>
-                <div class="row">
-                    <button type="button" id="loginBtn" class="btn btn-primary">Autentificare</button>
-                    <button type="button" id="signupBtn" class="btn btn-ghost">Înregistrare</button>
-                </div>
+<section class="composer" id="composer" style="display:none;">
+    <h3>Adaugă postare</h3>
+    <form id="postForm">
+        <label for="title">Titlu</label>
+        <input type="text" id="postTitle" placeholder="Titlul postării">
+        <label for="content">Conținut</label>
+        <textarea id="postContent" placeholder="Scrie postarea..."></textarea>
+        <p id="postMessage" class="message success" style="margin-top: 10px;"></p>
+        <div class="row">
+            <button type="submit" class="btn btn-primary">Publică</button>
+            <button type="button" id="clearBtn" class="btn btn-ghost">Șterge</button>
+        </div>
+    </form>
+</section>
+
+<div id="postsContainer">
+    <div class='post-card'>Se încarcă postările...</div>
+</div>
+</main>
+<footer>
+&copy; <span id="year"></span> URBLOG
+</footer>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/9.0.0/firebase-app.js";
+import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/9.0.0/firebase-auth.js";
+import { getDatabase, ref, push, serverTimestamp, query, orderByChild, onChildAdded, onChildChanged, onChildRemoved, remove, set } from "https://www.gstatic.com/firebasejs/9.0.0/firebase-database.js";
+
+const firebaseConfig = {
+    apiKey: "AIzaSyB-rxgy8eLp4GkI8MOC86FMkEUvu7t_-P0",
+    authDomain: "urblog-2b3cc.firebaseapp.com",
+    databaseURL: "https://urblog-2b3cc-default-rtdb.firebaseio.com",
+    projectId: "urblog-2b3cc",
+    storageBucket: "urblog-2b3cc.appspot.com",
+    messagingSenderId: "1017518777097",
+    appId: "1:1017518777097:web:b87f76f1b0f7400acca9d8",
+    measurementId: "G-HGVDRRXYBC"
+};
+
+const app = initializeApp(firebaseConfig);
+const auth = getAuth(app);
+const db = getDatabase(app);
+
+const postsContainer = document.getElementById('postsContainer');
+const postForm = document.getElementById('postForm');
+const postTitleInput = document.getElementById('postTitle');
+const postContentInput = document.getElementById('postContent');
+const authSection = document.getElementById('authSection');
+const composerSection = document.getElementById('composer');
+const logoutBtn = document.getElementById('logoutBtn');
+const headerProfilePic = document.getElementById('headerProfilePic');
+const postMessage = document.getElementById('postMessage');
+const authMessage = document.getElementById('authMessage');
+const authEmail = document.getElementById('authEmail');
+const authPassword = document.getElementById('authPassword');
+const addPostBtn = document.getElementById('addPostBtn');
+document.getElementById('year').textContent = new Date().getFullYear();
+
+let currentUser = null;
+
+function escapeHtml(str) {
+    if (!str && str !== "") return "";
+    return String(str).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/\"/g, "&quot;").replace(/\'/g, "&#39;");
+}
+
+function formatDate(ts) {
+    if (!ts) return 'Data necunoscută';
+    const t = (typeof ts === 'object' && ts.hasOwnProperty('seconds')) ? ts.seconds * 1000 : ts;
+    const d = new Date(t);
+    return isNaN(d.getTime()) ? 'Data necunoscută' : d.toLocaleString('ro-RO');
+}
+
+// AUTENTIFICARE
+onAuthStateChanged(auth, (user) => {
+    if (user) {
+        currentUser = user;
+        authSection.style.display = 'none';
+        composerSection.style.display = 'block';
+        logoutBtn.style.display = 'block';
+        addPostBtn.style.visibility = 'visible';
+        headerProfilePic.textContent = user.email.substring(0,2).toUpperCase();
+        loadPosts();
+    } else {
+        currentUser = null;
+        authSection.style.display = 'block';
+        composerSection.style.display = 'none';
+        logoutBtn.style.display = 'none';
+        addPostBtn.style.visibility = 'hidden';
+        headerProfilePic.textContent = '👤';
+        postsContainer.innerHTML = "<div class='post-card'>Te rugăm să te autentifici pentru a vedea postările.</div>";
+    }
+});
+
+document.getElementById('signupBtn').addEventListener('click', async () => {
+    try {
+        await createUserWithEmailAndPassword(auth, authEmail.value, authPassword.value);
+        authMessage.textContent = 'Înregistrare reușită. Ești logat!';
+        authMessage.className = 'message success';
+    } catch (error) {
+        authMessage.textContent = `Eroare: ${error.message}`;
+        authMessage.className = 'message error';
+    }
+});
+
+document.getElementById('loginBtn').addEventListener('click', async () => {
+    try {
+        await signInWithEmailAndPassword(auth, authEmail.value, authPassword.value);
+        authMessage.textContent = 'Autentificare reușită!';
+        authMessage.className = 'message success';
+    } catch (error) {
+        authMessage.textContent = `Eroare: ${error.message}`;
+        authMessage.className = 'message error';
+    }
+});
+
+logoutBtn.addEventListener('click', async () => { await signOut(auth); });
+
+// POSTARE NOUĂ
+postForm.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    if (!currentUser) return;
+    const title = postTitleInput.value.trim();
+    const content = postContentInput.value.trim();
+    if (title.length < 3 || content.length < 10) {
+        postMessage.textContent = "Titlul min. 3, Conținut min. 10 caractere.";
+        postMessage.className = 'message error';
+        return;
+    }
+    const submitBtn = postForm.querySelector('button[type=submit]');
+    submitBtn.disabled = true; submitBtn.textContent = "Se publică...";
+    const newPost = { title, content, authorId: currentUser.uid, authorEmail: currentUser.email, date: serverTimestamp() };
+    try {
+        await push(ref(db, 'posts'), newPost);
+        postForm.reset();
+        postMessage.textContent = 'Postare publicată cu succes!';
+        postMessage.className = 'message success';
+        setTimeout(() => postMessage.textContent='', 3000);
+    } catch (error) {
+        postMessage.textContent = `Eroare la publicare: ${error.message}`;
+        postMessage.className = 'message error';
+    } finally { submitBtn.disabled = false; submitBtn.textContent = "Publică"; }
+});
+
+// ÎNCĂRCARE POSTĂRI
+function loadPosts() {
+    const postsRef = ref(db,'posts');
+    const sortedQuery = query(postsRef, orderByChild('date'));
+    postsContainer.innerHTML = '';
+    onChildAdded(sortedQuery, (snapshot) => {
+        const post = {id: snapshot.key,...snapshot.val()};
+        const postElement = createPostElement(post);
+        postsContainer.prepend(postElement);
+        loadComments(post.id, postElement);
+    });
+}
+
+function createPostElement(p) {
+    const dateStr = formatDate(p.date);
+    const initials = p.authorEmail ? p.authorEmail.substring(0,2).toUpperCase():'??';
+    const div = document.createElement('div');
+    div.className='post-card';
+    div.id=`post-${p.id}`;
+    div.innerHTML=`
+        <div class="post-header">
+            <div class="profile-pic">${initials}</div>
+            <div>
+                <div class="username">${escapeHtml(p.title)}</div>
+                <div class="time">${escapeHtml(p.authorEmail)} · ${dateStr}</div>
             </div>
-        </section>
-        
-        <!-- SECȚIUNEA DE CREARE POSTARE (Vizibilă doar logat) -->
-        <section class="composer" id="composer" style="display:none;">
-            <h3>Adaugă postare</h3>
-            <form id="postForm">
-                <label for="title">Titlu</label>
-                <input type="text" id="postTitle" placeholder="Titlul postării">
-                <label for="content">Conținut</label>
-                <textarea id="postContent" placeholder="Scrie postarea..."></textarea>
-                <p id="postMessage" class="message success" style="margin-top: 10px;"></p>
-                <div class="row">
-                    <button type="submit" class="btn btn-primary">Publică</button>
-                    <button type="button" id="clearBtn" class="btn btn-ghost">Șterge</button>
-                </div>
-            </form>
-        </section>
-
-        <!-- Loader -->
-        <div id="loader" class="loader">Se încarcă postările...</div>
-
-        <!-- SECȚIUNEA DE AFIȘARE POSTĂRI -->
-        <div id="postsContainer"></div>
-    </main>
-
-    <footer>
-        &copy; <span id="year"></span> URBLOG
-    </footer>
-
-    <script type="module">
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/9.0.0/firebase-app.js";
-        import { 
-            getAuth, 
-            createUserWithEmailAndPassword, 
-            signInWithEmailAndPassword, 
-            onAuthStateChanged, 
-            signOut 
-        } from "https://www.gstatic.com/firebasejs/9.0.0/firebase-auth.js";
-        import { 
-            getDatabase, 
-            ref, 
-            push, 
-            set,
-            serverTimestamp,
-            query,
-            orderByChild,
-            onChildAdded,
-            onChildChanged,
-            onChildRemoved,
-            remove
-        } from "https://www.gstatic.com/firebasejs/9.0.0/firebase-database.js";
-
-        const firebaseConfig = {
-            apiKey: "AIzaSyB-rxgy8eLp4GkI8MOC86FMkEUvu7t_-P0",
-            authDomain: "urblog-2b3cc.firebaseapp.com",
-            databaseURL: "https://urblog-2b3cc-default-rtdb.firebaseio.com", 
-            projectId: "urblog-2b3cc",
-            storageBucket: "urblog-2b3cc.firebasestorage.app",
-            messagingSenderId: "1017518777097",
-            appId: "1:1017518777097:web:b87f76f1b0f7400acca9d8",
-            measurementId: "G-HGVDRRXYBC"
-        };
-        
-        const app = initializeApp(firebaseConfig);
-        const auth = getAuth(app);
-        const db = getDatabase(app);
-
-        const postsContainer = document.getElementById('postsContainer');
-        const postForm = document.getElementById('postForm');
-        const postTitleInput = document.getElementById('postTitle');
-        const postContentInput = document.getElementById('postContent');
-        const authSection = document.getElementById('authSection');
-        const composerSection = document.getElementById('composer');
-        const logoutBtn = document.getElementById('logoutBtn');
-        const headerProfilePic = document.getElementById('headerProfilePic');
-        const postMessage = document.getElementById('postMessage');
-        const authMessage = document.getElementById('authMessage');
-        const authEmail = document.getElementById('authEmail');
-        const authPassword = document.getElementById('authPassword');
-        const addPostBtn = document.getElementById('addPostBtn');
-        const loader = document.getElementById('loader');
-        
-        document.getElementById('year').textContent = new Date().getFullYear();
-        let currentUser = null; 
-
-        // ======================
-        // UTILITĂȚI
-        // ======================
-        function escapeHtml(str) {
-            if (!str && str !== "") return "";
-            return String(str).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/\"/g, "&quot;").replace(/\'/g, "&#39;");
-        }
-
-        function formatDate(ts) {
-            if (!ts) return 'Data necunoscută';
-            const d = new Date(ts);
-            return isNaN(d.getTime()) ? 'Data necunoscută' : d.toLocaleString('ro-RO');
-        }
-
-        // ======================
-        // AUTENTIFICARE
-        // ======================
-        onAuthStateChanged(auth, (user) => {
-            if (user) {
-                currentUser = user;
-                authSection.style.display = 'none';
-                composerSection.style.display = 'block';
-                logoutBtn.style.display = 'block';
-                addPostBtn.style.visibility = 'visible';
-                headerProfilePic.textContent = user.email.substring(0, 2).toUpperCase();
-                loadPosts(); 
-            } else {
-                currentUser = null;
-                authSection.style.display = 'block';
-                composerSection.style.display = 'none';
-                logoutBtn.style.display = 'none';
-                addPostBtn.style.visibility = 'hidden';
-                headerProfilePic.textContent = '👤';
-                postsContainer.innerHTML = "<div class='post-card'>Te rugăm să te autentifici pentru a vedea postările.</div>";
-            }
+        </div>
+        <div class="post-content">${escapeHtml(p.content)}</div>
+        <div class="post-actions" style="text-align: right;">
+            ${currentUser && currentUser.uid===p.authorId ? `<button class="btn btn-ghost delete-post-btn" data-id="${p.id}">🗑️ Șterge</button>`:''}
+        </div>
+        <div class="comment-section">
+            <div id="comments-container-${p.id}"></div>
+            ${currentUser?`
+                <div class="comment-form">
+                    <input type="text" id="comment-input-${p.id}" placeholder="Adaugă un comentariu...">
+                    <button class="btn btn-primary submit-comment-btn" data-id="${p.id}">Trimite</button>
+                </div>`:'<p style="color: var(--muted);">Autentifică-te pentru a comenta.</p>'}
+        </div>
+    `;
+    if(currentUser && currentUser.uid===p.authorId){
+        div.querySelector('.delete-post-btn').addEventListener('click', async ()=>{
+            if(confirm("Ștergi postarea?")) await remove(ref(db,'posts/'+p.id));
         });
+    }
+    if(currentUser) div.querySelector('.submit-comment-btn').addEventListener('click',()=>submitComment(p.id));
+    return div;
+}
 
-        document.getElementById('signupBtn').addEventListener('click', async () => {
-            try {
-                await createUserWithEmailAndPassword(auth, authEmail.value, authPassword.value);
-                authMessage.textContent = 'Înregistrare reușită. Ești logat!';
-                authMessage.className = 'message success';
-            } catch (error) {
-                authMessage.textContent = `Eroare: ${error.message}`;
-                authMessage.className = 'message error';
-            }
-        });
-
-        document.getElementById('loginBtn').addEventListener('click', async () => {
-            try {
-                await signInWithEmailAndPassword(auth, authEmail.value, authPassword.value);
-                authMessage.textContent = 'Autentificare reușită!';
-                authMessage.className = 'message success';
-            } catch (error) {
-                authMessage.textContent = `Eroare: ${error.message}`;
-                authMessage.className = 'message error';
-            }
-        });
-
-        logoutBtn.addEventListener('click', async () => {
-            await signOut(auth);
-        });
-
-        // ======================
-        // POSTARE NOUĂ
-        // ======================
-        postForm.addEventListener('submit', async (e) => {
-            e.preventDefault();
-            if (!currentUser) return;
-
-            const title = postTitleInput.value.trim();
-            const content = postContentInput.value.trim();
-
-            if (title.length < 3 || title.length > 100) {
-                postMessage.textContent = "Titlul trebuie între 3 și 100 caractere.";
-                postMessage.className = 'message error';
-                return;
-            }
-            if (content.length < 10 || content.length > 2000) {
-                postMessage.textContent = "Conținutul trebuie între 10 și 2000 caractere.";
-                postMessage.className = 'message error';
-                return;
-            }
-
-            const submitBtn = postForm.querySelector('button[type=submit]');
-            submitBtn.disabled = true;
-            submitBtn.textContent = "Se publică...";
-
-            const newPost = {
-                title,
-                content,
-                authorId: currentUser.uid,
-                authorEmail: currentUser.email,
-                date: serverTimestamp()
-            };
-
-            try {
-                await push(ref(db, 'posts'), newPost);
-                postForm.reset();
-                postMessage.textContent = 'Postare publicată cu succes!';
-                postMessage.className = 'message success';
-                setTimeout(() => postMessage.textContent = '', 3000);
-            } catch (error) {
-                postMessage.textContent = `Eroare la publicare: ${error.message}`;
-                postMessage.className = 'message error';
-            } finally {
-                submitBtn.disabled = false;
-                submitBtn.textContent = "Publică";
-            }
-        });
-
-        // ======================
-        // ÎNCĂRCARE POSTĂRI
-        // ======================
-        function loadPosts() {
-            const postsRef = ref(db, 'posts');
-            const sortedQuery = query(postsRef, orderByChild('date'));
-            postsContainer.innerHTML = '';
-            loader.style.display = 'block';
-
-            onChildAdded(sortedQuery, (snapshot) => {
-                const post = { id: snapshot.key, ...snapshot.val() };
-                const postElement = createPostElement(post);
-                postsContainer.prepend(postElement);
-                loadComments(post.id, postElement);
-                loader.style.display = 'none';
-            });
-
-            onChildChanged(sortedQuery, (snapshot) => {
-                const post = { id: snapshot.key, ...snapshot.val() };
-                const oldElement = document.getElementById(`post-${post.id}`);
-                if (oldElement) {
-                    const newElement = createPostElement(post);
-                    oldElement.replaceWith(newElement);
-                    loadComments(post.id, newElement);
-                }
-            });
-
-            onChildRemoved(sortedQuery, (snapshot) => {
-                const postId = snapshot.key;
-                const postElement = document.getElementById(`post-${postId}`);
-                if (postElement) postElement.remove();
-            });
-        }
-
-        function createPostElement(p) {
-            const dateStr = formatDate(p.date);
-            const initials = p.authorEmail ? p.authorEmail.substring(0, 2).toUpperCase() : '??';
-            const div = document.createElement('div');
-            div.className = 'post-card';
-            div.id = `post-${p.id}`;
-            div.innerHTML = `
-                <div class="post-header">
-                    <div class="profile-pic">${initials}</div>
-                    <div>
-                        <div class="username">${escapeHtml(p.title)}</div>
-                        <div class="time">${escapeHtml(p.authorEmail)} · ${dateStr}</div>
-                    </div>
-                </div>
-                <div class="post-content">${escapeHtml(p.content)}</div>
-                
-                <div class="post-actions" style="text-align: right;">
-                    ${currentUser && currentUser.uid === p.authorId ? 
-                        `<button class="btn btn-ghost delete-post-btn" data-id="${p.id}" aria-label="Șterge postarea">🗑️ Șterge</button>` 
-                        : ''
-                    }
-                </div>
-
-                <div class="comment-section">
-                    <div id="comments-container-${p.id}"></div>
-                    
-                    ${currentUser ? `
-                        <div class="comment-form">
-                            <input type="text" id="comment-input-${p.id}" placeholder="Adaugă un comentariu...">
-                            <button class="btn btn-primary submit-comment-btn" data-id="${p.id}">Trimite</button>
-                        </div>
-                    ` : '<p style="color: var(--muted);">Autentifică-te pentru a comenta.</p>'}
-                </div>
-            `;
-
-            if (currentUser && currentUser.uid === p.authorId) {
-                div.querySelector('.delete-post-btn').addEventListener('click', async () => {
-                    if (confirm("Ești sigur că vrei să ștergi această postare?")) {
-                        await remove(ref(db, 'posts/' + p.id));
-                    }
-                });
-            }
-
-            if (currentUser) {
-                div.querySelector('.submit-comment-btn').addEventListener('click', () => {
-                    submitComment(p.id);
-                });
-            }
-
-            return div;
-        }
-
-        async function submitComment(postId) {
-            const input = document.getElementById(`comment-input-${postId}`);
-            if (!input) return;
-
-            const commentText = input.value.trim();
-            if (!commentText || commentText.length < 2 || commentText.length > 500) return;
-
-            const newComment = {
-                text: commentText,
-                authorEmail: currentUser.email,
-                authorId: currentUser.uid,
-                date: serverTimestamp()
-            };
-
-            try {
-                await push(ref(db, `comments/${postId}`), newComment);
-                input.value = '';
-            } catch (error) {
-                console.error("Eroare la comentariu:", error);
-            }
-        }
-
-        function loadComments(postId, postElement) {
-            const container = postElement.querySelector(`#comments-container-${postId}`);
-            container.innerHTML = '';
-
-            const commentsRef = ref(db, `comments/${postId}`);
-            const sortedQuery = query(commentsRef, orderByChild('date'));
-
-            onChildAdded(sortedQuery, (snapshot) => {
-                const c = { id: snapshot.key, ...snapshot.val() };
-                const dateStr = formatDate(c.date);
-                const div = document.createElement('div');
-                div.className = 'comment-item';
-                div.id = `comment-${c.id}`;
-                div.innerHTML = `
-                    <span class="comment-author">${escapeHtml(c.authorEmail)}</span>
-                    <span class="comment-time">${dateStr}</span>
-                    <div class="comment-text">${escapeHtml(c.text)}</div>
-                `;
-
-                if (currentUser && currentUser.uid === c.authorId) {
-                    div.innerHTML += `
-                        <div style="margin-top:5px; text-align:right;">
-                            <button class="btn btn-ghost edit-comment-btn" data-post="${postId}" data-id="${c.id}">✏️ Edit</button>
-                            <button class="btn btn-ghost delete-comment-btn" data-post="${postId}" data-id="${c.id}">🗑️ Șterge</button>
-                        </div>
-                    `;
-                    div.querySelector('.delete-comment-btn').addEventListener('click', async () => {
-                        if (confirm("Ștergi comentariul?")) {
-                            await remove(ref(db, `comments/${postId}/${c.id}`));
-                        }
-                    });
-                    div.querySelector('.edit-comment-btn').addEventListener('click', async () => {
-                        const newText = prompt("Editează comentariul:", c.text);
-                        if (newText && newText.length >= 2) {
-                            await set(ref(db, `comments/${postId}/${c.id}/text`), newText);
-                        }
-                    });
-                }
-
-                container.appendChild(div);
-            });
-
-            onChildChanged(sortedQuery, (snapshot) => {
-                const c = { id: snapshot.key, ...snapshot.val() };
-                const div = document.getElementById(`comment-${c.id}`);
-                if (div) {
-                    const dateStr = formatDate(c.date);
-                    div.querySelector('.comment-text').textContent = c.text;
-                    div.querySelector('.comment-time').textContent = dateStr;
-                }
-            });
-
-            onChildRemoved(sortedQuery, (snapshot) => {
-                const commentId = snapshot.key;
-                const div = document.getElementById(`comment-${commentId}`);
-                if (div) div.remove();
-            });
-        }
-    </script>
+// COMMENTS
+async function submitComment(postId){
+    const input = document.getElementById(`comment-input-${postId}`);
+    if(!input) return;
+    const text=input.value.trim();
+    if(!text||text.length<2) return;
+    const newComment={text,authorEmail:currentUser.email,authorId:currentUser.uid,date:serverTimestamp()};
+    try{await push(ref(db,`comments/${postId}`),newComment);input.value='';}catch(e){console.error(e);}
+}
+function loadComments(postId,postElement){
+    const container=postElement.querySelector(`#comments-container-${postId}`);
+    container.innerHTML='';
+    const commentsRef=ref(db,`comments/${postId}`);
+    const sortedQuery=query(commentsRef,orderByChild('date'));
+    onChildAdded(sortedQuery,(snapshot)=>{
+        const c={id:snapshot.key,...snapshot.val()};
+        const dateStr=formatDate(c.date);
+        const div=document.createElement('div');
+        div.className='comment-item';
+        div.id=`comment-${c.id}`;
+        div.innerHTML=`
+            <span class="comment-author">${escapeHtml(c.authorEmail)}</span>
+            <span class="comment-time">${dateStr}</span>
+            <div class="comment-text">${escapeHtml(c.text)}</div>
+        `;
+        container.appendChild(div);
+    });
+}
+</script>
 </body>
 </html>
+
 
