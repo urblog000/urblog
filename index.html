@@ -92,13 +92,9 @@
         .btn-ghost:hover { background: #ddd; transition: 0.2s ease-in-out; }
         .message.error { color: var(--error); }
         .message.success { color: var(--success); }
-        
-        /* Butoane comentarii */
-        .submit-comment-btn { 
-            padding: 10px 14px;
-            font-size: 14px;
-            white-space: nowrap;
-        }
+
+        /* Loader */
+        .loader { text-align:center; padding:20px; font-size:16px; color: var(--muted); }
 
         footer { margin-top: 40px; text-align: center; padding: 20px; color: var(--muted); }
     </style>
@@ -106,7 +102,7 @@
 <body>
     <header>
         <div class="left" id="addPostBtn" style="visibility: hidden;">＋</div>
-        <div class="center">URBLOG</div>
+        <h1 class="center">URBLOG</h1>
         <div class="right">
             <div class="profile-pic" id="headerProfilePic">👤</div>
             <button id="logoutBtn" class="btn btn-ghost" style="display:none;">Ieșire</button>
@@ -146,10 +142,11 @@
             </form>
         </section>
 
+        <!-- Loader -->
+        <div id="loader" class="loader">Se încarcă postările...</div>
+
         <!-- SECȚIUNEA DE AFIȘARE POSTĂRI -->
-        <div id="postsContainer">
-            <div class='post-card'>Se încarcă postările...</div>
-        </div>
+        <div id="postsContainer"></div>
     </main>
 
     <footer>
@@ -169,6 +166,7 @@
             getDatabase, 
             ref, 
             push, 
+            set,
             serverTimestamp,
             query,
             orderByChild,
@@ -206,10 +204,24 @@
         const authEmail = document.getElementById('authEmail');
         const authPassword = document.getElementById('authPassword');
         const addPostBtn = document.getElementById('addPostBtn');
+        const loader = document.getElementById('loader');
         
         document.getElementById('year').textContent = new Date().getFullYear();
-
         let currentUser = null; 
+
+        // ======================
+        // UTILITĂȚI
+        // ======================
+        function escapeHtml(str) {
+            if (!str && str !== "") return "";
+            return String(str).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/\"/g, "&quot;").replace(/\'/g, "&#39;");
+        }
+
+        function formatDate(ts) {
+            if (!ts) return 'Data necunoscută';
+            const d = new Date(ts);
+            return isNaN(d.getTime()) ? 'Data necunoscută' : d.toLocaleString('ro-RO');
+        }
 
         // ======================
         // AUTENTIFICARE
@@ -261,14 +273,6 @@
         });
 
         // ======================
-        // FUNCȚII UTILITARE
-        // ======================
-        function escapeHtml(str) {
-            if (!str && str !== "") return "";
-            return String(str).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/\"/g, "&quot;").replace(/\'/g, "&#39;");
-        }
-
-        // ======================
         // POSTARE NOUĂ
         // ======================
         postForm.addEventListener('submit', async (e) => {
@@ -278,8 +282,13 @@
             const title = postTitleInput.value.trim();
             const content = postContentInput.value.trim();
 
-            if (title.length < 3 || content.length < 10) {
-                postMessage.textContent = "Titlul min. 3, Conținut min. 10 caractere.";
+            if (title.length < 3 || title.length > 100) {
+                postMessage.textContent = "Titlul trebuie între 3 și 100 caractere.";
+                postMessage.className = 'message error';
+                return;
+            }
+            if (content.length < 10 || content.length > 2000) {
+                postMessage.textContent = "Conținutul trebuie între 10 și 2000 caractere.";
                 postMessage.className = 'message error';
                 return;
             }
@@ -312,19 +321,20 @@
         });
 
         // ======================
-        // ÎNCĂRCARE POSTĂRI OPTIMIZAT
+        // ÎNCĂRCARE POSTĂRI
         // ======================
         function loadPosts() {
             const postsRef = ref(db, 'posts');
             const sortedQuery = query(postsRef, orderByChild('date'));
-
             postsContainer.innerHTML = '';
+            loader.style.display = 'block';
 
             onChildAdded(sortedQuery, (snapshot) => {
                 const post = { id: snapshot.key, ...snapshot.val() };
                 const postElement = createPostElement(post);
                 postsContainer.prepend(postElement);
                 loadComments(post.id, postElement);
+                loader.style.display = 'none';
             });
 
             onChildChanged(sortedQuery, (snapshot) => {
@@ -345,13 +355,8 @@
         }
 
         function createPostElement(p) {
-            const dateStr = (typeof p.date === 'number')
-                ? new Date(p.date).toLocaleString('ro-RO')
-                : 'Data necunoscută';
-            const initials = p.authorEmail
-                ? p.authorEmail.substring(0, 2).toUpperCase()
-                : '??';
-
+            const dateStr = formatDate(p.date);
+            const initials = p.authorEmail ? p.authorEmail.substring(0, 2).toUpperCase() : '??';
             const div = document.createElement('div');
             div.className = 'post-card';
             div.id = `post-${p.id}`;
@@ -406,7 +411,7 @@
             if (!input) return;
 
             const commentText = input.value.trim();
-            if (!commentText || commentText.length < 2) return;
+            if (!commentText || commentText.length < 2 || commentText.length > 500) return;
 
             const newComment = {
                 text: commentText,
@@ -432,10 +437,7 @@
 
             onChildAdded(sortedQuery, (snapshot) => {
                 const c = { id: snapshot.key, ...snapshot.val() };
-                const dateStr = (typeof c.date === 'number')
-                    ? new Date(c.date).toLocaleString('ro-RO')
-                    : '';
-                
+                const dateStr = formatDate(c.date);
                 const div = document.createElement('div');
                 div.className = 'comment-item';
                 div.id = `comment-${c.id}`;
@@ -444,6 +446,27 @@
                     <span class="comment-time">${dateStr}</span>
                     <div class="comment-text">${escapeHtml(c.text)}</div>
                 `;
+
+                if (currentUser && currentUser.uid === c.authorId) {
+                    div.innerHTML += `
+                        <div style="margin-top:5px; text-align:right;">
+                            <button class="btn btn-ghost edit-comment-btn" data-post="${postId}" data-id="${c.id}">✏️ Edit</button>
+                            <button class="btn btn-ghost delete-comment-btn" data-post="${postId}" data-id="${c.id}">🗑️ Șterge</button>
+                        </div>
+                    `;
+                    div.querySelector('.delete-comment-btn').addEventListener('click', async () => {
+                        if (confirm("Ștergi comentariul?")) {
+                            await remove(ref(db, `comments/${postId}/${c.id}`));
+                        }
+                    });
+                    div.querySelector('.edit-comment-btn').addEventListener('click', async () => {
+                        const newText = prompt("Editează comentariul:", c.text);
+                        if (newText && newText.length >= 2) {
+                            await set(ref(db, `comments/${postId}/${c.id}/text`), newText);
+                        }
+                    });
+                }
+
                 container.appendChild(div);
             });
 
@@ -451,14 +474,9 @@
                 const c = { id: snapshot.key, ...snapshot.val() };
                 const div = document.getElementById(`comment-${c.id}`);
                 if (div) {
-                    const dateStr = (typeof c.date === 'number')
-                        ? new Date(c.date).toLocaleString('ro-RO')
-                        : '';
-                    div.innerHTML = `
-                        <span class="comment-author">${escapeHtml(c.authorEmail)}</span>
-                        <span class="comment-time">${dateStr}</span>
-                        <div class="comment-text">${escapeHtml(c.text)}</div>
-                    `;
+                    const dateStr = formatDate(c.date);
+                    div.querySelector('.comment-text').textContent = c.text;
+                    div.querySelector('.comment-time').textContent = dateStr;
                 }
             });
 
