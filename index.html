@@ -68,6 +68,7 @@
         }
         .comment-author { font-weight: bold; color: var(--accent); margin-right: 5px; }
         .comment-form { display: flex; gap: 5px; margin-top: 10px; }
+        .comment-form input { border-radius: var(--radius); border: 1px solid #ccc; padding: 10px; flex-grow: 1; }
 
         /* Composer & Auth */
         .composer, .auth-form {
@@ -90,6 +91,13 @@
         .btn-ghost:hover { background: #ddd; transition: 0.2s ease-in-out; }
         .message.error { color: var(--error); }
         .message.success { color: var(--success); }
+        
+        /* Butoane comentarii */
+        .submit-comment-btn { 
+            padding: 10px 14px;
+            font-size: 14px;
+            white-space: nowrap;
+        }
 
         footer { margin-top: 40px; text-align: center; padding: 20px; color: var(--muted); }
     </style>
@@ -105,6 +113,7 @@
     </header>
 
     <main>
+        <!-- SECȚIUNEA DE AUTENTIFICARE/ÎNREGISTRARE -->
         <section class="auth-form" id="authSection">
             <h3>Autentificare / Înregistrare</h3>
             <div id="loginForm">
@@ -120,6 +129,7 @@
             </div>
         </section>
         
+        <!-- SECȚIUNEA DE CREARE POSTARE (Vizibilă doar logat) -->
         <section class="composer" id="composer" style="display:none;">
             <h3>Adaugă postare</h3>
             <form id="postForm">
@@ -135,6 +145,7 @@
             </form>
         </section>
 
+        <!-- SECȚIUNEA DE AFIȘARE POSTĂRI -->
         <div id="postsContainer">
             <div class='post-card'>Se încarcă postările...</div>
         </div>
@@ -160,26 +171,24 @@
             push, 
             onValue, 
             serverTimestamp,
-            get,
             query,
             orderByChild,
             remove
         } from "https://www.gstatic.com/firebasejs/9.0.0/firebase-database.js";
 
         // *************************************************************************************************
-        // PASUL 2: CONFIGURARE - VERIFICĂ ȘI ÎNLOCUIEȘTE CU DATELE TALE REALE
-        // Am presupus că folosești Realtime Database (RTDB) pentru postări.
+        // PASUL 2: CONFIGURARE - DATELE TALE ACTUALIZATE
         // *************************************************************************************************
         const firebaseConfig = {
-            apiKey: "AIzaSyCMY5tUsx-DmAtvpG4UQlbyY99fJrgmgSM",
-            authDomain: "site-99197.firebaseapp.com",
-            // Adaugă databaseURL pentru Realtime Database!
-            databaseURL: "https://site-99197-default-rtdb.firebaseio.com", 
-            projectId: "site-99197",
-            storageBucket: "site-99197.firebasestorage.app",
-            messagingSenderId: "246047528041",
-            appId: "1:246047528041:web:bb46208af9b32a1b79bef8",
-            measurementId: "G-6942F03VFS"
+            apiKey: "AIzaSyB-rxgy8eLp4GkI8MOC86FMkEUvu7t_-P0",
+            authDomain: "urblog-2b3cc.firebaseapp.com",
+            // Adaugă databaseURL pentru Realtime Database
+            databaseURL: "https://urblog-2b3cc-default-rtdb.firebaseio.com", 
+            projectId: "urblog-2b3cc",
+            storageBucket: "urblog-2b3cc.firebasestorage.app",
+            messagingSenderId: "1017518777097",
+            appId: "1:1017518777097:web:b87f76f1b0f7400acca9d8",
+            measurementId: "G-HGVDRRXYBC"
         };
         
         // Inițializare Firebase
@@ -204,13 +213,12 @@
         
         document.getElementById('year').textContent = new Date().getFullYear();
 
-        let currentUser = null; // Obiectul utilizator curent
+        let currentUser = null; 
 
         // *************************************************************************************************
         // 1. GESTIONAREA AUTENTIFICĂRII
         // *************************************************************************************************
         
-        // Ascultă schimbările în starea de autentificare (login/logout)
         onAuthStateChanged(auth, (user) => {
             if (user) {
                 currentUser = user;
@@ -219,7 +227,7 @@
                 logoutBtn.style.display = 'block';
                 addPostBtn.style.visibility = 'visible';
                 headerProfilePic.textContent = user.email.substring(0, 2).toUpperCase();
-                loadPosts(); // Încarcă postările doar după autentificare
+                loadPosts(); 
             } else {
                 currentUser = null;
                 authSection.style.display = 'block';
@@ -231,7 +239,6 @@
             }
         });
 
-        // Funcții Login/Signup/Logout
         document.getElementById('signupBtn').addEventListener('click', async () => {
             try {
                 await createUserWithEmailAndPassword(auth, authEmail.value, authPassword.value);
@@ -262,7 +269,6 @@
         // 2. GESTIONAREA POSTĂRILOR (Realtime Database)
         // *************************************************************************************************
 
-        // Funcție helper pentru a evita XSS
         function escapeHtml(str) {
             if (!str && str !== "") return "";
             return String(str).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/\"/g, "&quot;").replace(/\'/g, "&#39;");
@@ -271,11 +277,7 @@
         // Adaugă Postare
         postForm.addEventListener('submit', async (e) => {
             e.preventDefault();
-            if (!currentUser) {
-                postMessage.textContent = 'Trebuie să fii logat pentru a posta!';
-                postMessage.className = 'message error';
-                return;
-            }
+            if (!currentUser) return;
 
             const title = postTitleInput.value.trim();
             const content = postContentInput.value.trim();
@@ -316,6 +318,7 @@
         // Încarcă și Randează Postările în Timp Real
         function loadPosts() {
             const postsRef = ref(db, 'posts');
+            // Interogare pentru a sorta după dată (cel mai nou în jos în baza de date)
             const sortedQuery = query(postsRef, orderByChild('date'));
 
             onValue(sortedQuery, (snapshot) => {
@@ -327,7 +330,7 @@
 
                 const postsArray = [];
                 snapshot.forEach(childSnapshot => {
-                    // Adaugă postarea în fața listei (sortare descrescătoare vizuală)
+                    // Adaugă postarea în fața listei (pentru a avea cel mai nou primul vizual)
                     postsArray.unshift({
                         id: childSnapshot.key,
                         ...childSnapshot.val()
@@ -366,13 +369,13 @@
                     }
                 </div>
 
+                <!-- Secțiunea de Comentarii -->
                 <div class="comment-section">
-                    <h4>Comentarii:</h4>
                     <div id="comments-container-${p.id}"></div>
                     
                     ${currentUser ? `
                         <div class="comment-form">
-                            <input type="text" id="comment-input-${p.id}" placeholder="Adaugă un comentariu..." style="width: 100%; border-radius: ${getComputedStyle(document.documentElement).getPropertyValue('--radius')};">
+                            <input type="text" id="comment-input-${p.id}" placeholder="Adaugă un comentariu..." >
                             <button class="btn btn-primary submit-comment-btn" data-post-id="${p.id}">Trimite</button>
                         </div>
                     ` : '<p style="font-size: 14px; margin-top: 10px;">Autentifică-te pentru a comenta.</p>'}
@@ -382,6 +385,7 @@
             // Adaugă listener pentru ștergere
             if (currentUser && currentUser.uid === p.authorId) {
                 div.querySelector(".delete-post-btn").addEventListener("click", async (e) => {
+                    // Am înlocuit alert() cu o modală (confirm() simplificat)
                     if (confirm("Ești sigur că vrei să ștergi această postare și toate comentariile sale?")) {
                         const postId = e.target.getAttribute('data-id');
                         await remove(ref(db, `posts/${postId}`));
@@ -428,13 +432,20 @@
 
             onValue(sortedQuery, (snapshot) => {
                 commentsContainer.innerHTML = '';
-                if (!snapshot.exists()) {
+                
+                const commentsArray = [];
+                snapshot.forEach(childSnapshot => {
+                    commentsArray.push(childSnapshot.val());
+                });
+
+                if (commentsArray.length === 0) {
                     commentsContainer.innerHTML = '<p class="comments">Fii primul care comentează!</p>';
                     return;
                 }
+
+                // commentsContainer.innerHTML = '<h4>Comentarii:</h4>'; // Mutat în template
                 
-                snapshot.forEach(childSnapshot => {
-                    const c = childSnapshot.val();
+                commentsArray.forEach(c => {
                     const date = c.date ? new Date(c.date).toLocaleTimeString('ro-RO', {hour: '2-digit', minute:'2-digit'}) : '';
                     
                     const p = document.createElement('div');
@@ -455,9 +466,10 @@
             postTitleInput.focus();
         });
 
-        // Inițializează vizualizarea postărilor (va fi gestionată de onAuthStateChanged)
-        if (!currentUser) loadPosts(); // Afișează "loghează-te" mesaj
+        // Încarcă starea inițială (onAuthStateChanged va gestiona vizibilitatea)
+        if (!currentUser) loadPosts(); 
 
     </script>
 </body>
 </html>
+
