@@ -1,264 +1,474 @@
-<!DOCTYPE html>
+   <!doctype html>
 <html lang="ro">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Aplicatie Postări Firestore</title>
-    <!-- Tailwind CSS CDN -->
-    <script src="https://cdn.tailwindcss.com"></script>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <meta name="description" content="URBlog - Scrie și citește postări scurte.">
+    <meta name="robots" content="index, follow">
+    <link rel="canonical" href="https://urblog.example.com/">
+    <title>UrBlog</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
     <style>
-        /* Custom styles for better readability and a clean look */
-        body { font-family: 'Inter', sans-serif; background-color: #f3f4f6; }
-        .post-card { transition: transform 0.2s, box-shadow 0.2s; }
-        .post-card:hover { transform: translateY(-2px); box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05); }
+        :root {
+            --header-gradient: linear-gradient(to right, #c2cfd8, #98d6f0, #428bca);
+            --card-bg: #d1d1d1;
+            --white: #ffffff;
+            --text: #000000;
+            --radius: 14px;
+            --muted: #555555;
+            --accent: #428bca;
+            --error: #dc3545;
+            --success: #28a745;
+            font-family: Inter, system-ui, -apple-system, Segoe UI, Roboto, 'Helvetica Neue', Arial, sans-serif;
+        }
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { background: #f0f2f5; color: var(--text); line-height: 1.5; }
+        header { 
+            background: var(--header-gradient); 
+            display: flex; align-items: center; justify-content: space-between; 
+            padding: 12px 24px; color: var(--white);
+        }
+        header .left, header .center, header .right { display: flex; align-items: center; }
+        header .left { flex: 0 0 auto; font-size: 24px; font-weight: bold; cursor: pointer; }
+        header .center { flex: 1; justify-content: center; font-size: 24px; font-weight: bold; }
+        header .right { gap: 10px; }
+        header .right .profile-pic {
+            width: 40px; height: 40px; border-radius: 50%; overflow: hidden; 
+            background: var(--white); display: grid; place-items: center; 
+            color: var(--muted); font-size: 12px; cursor: pointer;
+        }
+
+        main { padding: 20px; }
+        .post-card { 
+            background: var(--card-bg); border-radius: var(--radius); 
+            padding: 20px; max-width: 600px; margin: 20px auto;
+        }
+        .post-header { display: flex; align-items: center; gap: 14px; margin-bottom: 14px; }
+        .post-header .profile-pic {
+            width: 36px; height: 36px; border-radius: 50%; overflow: hidden; 
+            background: var(--white); display: grid; place-items: center; 
+            color: var(--muted); font-size: 12px;
+        }
+        .post-header .username { font-size: 20px; font-weight: bold; color: var(--text); }
+        .post-header .time { font-size: 13px; color: var(--muted); }
+        
+        .post-content { 
+            background: var(--white); padding: 16px; border-radius: var(--radius); 
+            font-size: 16px; color: var(--text); margin-bottom: 10px; 
+            white-space: pre-wrap; 
+        }
+
+        /* Comentarii */
+        .comment-section { margin-top: 15px; border-top: 1px solid #ccc; padding-top: 10px; }
+        .comment-item { 
+            margin-bottom: 8px; padding: 8px; border-left: 3px solid var(--accent); 
+            background: #f8f8f8; border-radius: 4px; font-size: 14px;
+        }
+        .comment-author { font-weight: bold; color: var(--accent); margin-right: 5px; }
+        .comment-form { display: flex; gap: 5px; margin-top: 10px; }
+        .comment-form input { border-radius: var(--radius); border: 1px solid #ccc; padding: 10px; flex-grow: 1; }
+
+        /* Composer & Auth */
+        .composer, .auth-form {
+            margin: 30px auto; max-width: 600px; background: var(--white); 
+            border-radius: var(--radius); padding: 20px; 
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+        .composer h3, .auth-form h3 { margin-bottom: 12px; color: var(--text); }
+        .composer label, .auth-form label { display: block; margin-top: 12px; font-weight: 600; color: var(--text); }
+        .composer input, .composer textarea, .auth-form input { 
+            width: 100%; padding: 10px; margin-top: 6px; 
+            border: 1px solid #ccc; border-radius: var(--radius); font-size: 14px; 
+        }
+        .composer textarea { min-height: 120px; resize: vertical; }
+        .composer .row, .auth-form .row { display: flex; gap: 10px; margin-top: 16px; }
+        .btn { padding: 10px 14px; border: none; border-radius: var(--radius); cursor: pointer; font-size: 14px; }
+        .btn-primary { background: var(--accent); color: var(--white); }
+        .btn-primary:hover { background: #357bd1; }
+        .btn-ghost { background: transparent; border: 1px solid #aaa; color: var(--text); }
+        .btn-ghost:hover { background: #ddd; transition: 0.2s ease-in-out; }
+        .message.error { color: var(--error); }
+        .message.success { color: var(--success); }
+        
+        /* Butoane comentarii */
+        .submit-comment-btn { 
+            padding: 10px 14px;
+            font-size: 14px;
+            white-space: nowrap;
+        }
+
+        footer { margin-top: 40px; text-align: center; padding: 20px; color: var(--muted); }
     </style>
 </head>
-<body class="p-4 md:p-8">
+<body>
+    <header>
+        <div class="left" id="addPostBtn" style="visibility: hidden;">＋</div>
+        <div class="center">URBLOG</div>
+        <div class="right">
+            <div class="profile-pic" id="headerProfilePic">👤</div>
+            <button id="logoutBtn" class="btn btn-ghost" style="display:none;">Ieșire</button>
+        </div>
+    </header>
 
-    <div id="app-container" class="max-w-2xl mx-auto bg-white p-6 rounded-xl shadow-2xl">
-        <h1 class="text-3xl font-bold text-indigo-700 mb-6 border-b pb-2">Platformă de Postări (Real-Time)</h1>
+    <main>
+        <!-- SECȚIUNEA DE AUTENTIFICARE/ÎNREGISTRARE -->
+        <section class="auth-form" id="authSection">
+            <h3>Autentificare / Înregistrare</h3>
+            <div id="loginForm">
+                <label for="authEmail">Email</label>
+                <input type="email" id="authEmail" placeholder="email@exemplu.ro">
+                <label for="authPassword">Parolă</label>
+                <input type="password" id="authPassword" placeholder="******">
+                <p id="authMessage" class="message error" style="margin-top: 10px;"></p>
+                <div class="row">
+                    <button type="button" id="loginBtn" class="btn btn-primary">Autentificare</button>
+                    <button type="button" id="signupBtn" class="btn btn-ghost">Înregistrare</button>
+                </div>
+            </div>
+        </section>
         
-        <!-- User Info & Status -->
-        <div id="status-message" class="bg-indigo-100 border border-indigo-300 text-indigo-800 px-4 py-3 rounded-lg mb-6">
-            Se inițializează...
+        <!-- SECȚIUNEA DE CREARE POSTARE (Vizibilă doar logat) -->
+        <section class="composer" id="composer" style="display:none;">
+            <h3>Adaugă postare</h3>
+            <form id="postForm">
+                <label for="title">Titlu</label>
+                <input type="text" id="postTitle" placeholder="Titlul postării">
+                <label for="content">Conținut</label>
+                <textarea id="postContent" placeholder="Scrie postarea..."></textarea>
+                <p id="postMessage" class="message success" style="margin-top: 10px;"></p>
+                <div class="row">
+                    <button type="submit" class="btn btn-primary">Publică</button>
+                    <button type="button" id="clearBtn" class="btn btn-ghost">Șterge</button>
+                </div>
+            </form>
+        </section>
+
+        <!-- SECȚIUNEA DE AFIȘARE POSTĂRI -->
+        <div id="postsContainer">
+            <div class='post-card'>Se încarcă postările...</div>
         </div>
+    </main>
 
-        <!-- Posting Form -->
-        <div class="mb-8 p-4 bg-gray-50 rounded-lg shadow-inner">
-            <textarea id="post-content" 
-                      placeholder="Ce ai vrea să postezi?" 
-                      rows="3"
-                      class="w-full p-3 border border-gray-300 rounded-lg focus:ring-indigo-500 focus:border-indigo-500 mb-3"></textarea>
-            <button onclick="postare()" 
-                    id="post-button"
-                    class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-2 rounded-lg transition duration-150 ease-in-out shadow-md disabled:bg-indigo-400">
-                Postează
-            </button>
-        </div>
+    <footer>
+        &copy; <span id="year"></span> URBLOG
+    </footer>
 
-        <!-- Posts List -->
-        <h2 class="text-xl font-semibold text-gray-700 mb-4">Postări Recente</h2>
-        <div id="posts-list" class="space-y-4">
-            <!-- Posts will be loaded here -->
-            <p class="text-center text-gray-500" id="loading-posts">Se încarcă postările...</p>
-        </div>
-
-    </div>
-
-    <!-- Firebase Imports -->
     <script type="module">
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        // PASUL 1: Importă SDK-urile necesare din Firebase
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/9.0.0/firebase-app.js";
         import { 
             getAuth, 
-            signInAnonymously, 
-            signInWithCustomToken, 
-            onAuthStateChanged 
-        } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+            createUserWithEmailAndPassword, 
+            signInWithEmailAndPassword, 
+            onAuthStateChanged, 
+            signOut 
+        } from "https://www.gstatic.com/firebasejs/9.0.0/firebase-auth.js";
         import { 
-            getFirestore, 
-            collection, 
-            addDoc, 
-            onSnapshot, 
-            query, 
-            orderBy
-        } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+            getDatabase, 
+            ref, 
+            push, 
+            onValue, 
+            serverTimestamp,
+            query,
+            orderByChild,
+            remove
+        } from "https://www.gstatic.com/firebasejs/9.0.0/firebase-database.js";
 
-        // --- Variabile Globale și Inițializare ---
-        const statusMessage = document.getElementById('status-message');
-        const postsList = document.getElementById('posts-list');
-        const postButton = document.getElementById('post-button');
+        // *************************************************************************************************
+        // PASUL 2: CONFIGURARE - DATELE TALE ACTUALIZATE
+        // *************************************************************************************************
+        const firebaseConfig = {
+            apiKey: "AIzaSyB-rxgy8eLp4GkI8MOC86FMkEUvu7t_-P0",
+            authDomain: "urblog-2b3cc.firebaseapp.com",
+            // Adaugă databaseURL pentru Realtime Database
+            databaseURL: "https://urblog-2b3cc-default-rtdb.firebaseio.com", 
+            projectId: "urblog-2b3cc",
+            storageBucket: "urblog-2b3cc.firebasestorage.app",
+            messagingSenderId: "1017518777097",
+            appId: "1:1017518777097:web:b87f76f1b0f7400acca9d8",
+            measurementId: "G-HGVDRRXYBC"
+        };
         
-        // Asigurarea accesului la variabilele de mediu (MANDATORIU)
-        const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
-        const firebaseConfig = JSON.parse(typeof __firebase_config !== 'undefined' ? __firebase_config : '{}');
-        const initialAuthToken = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : null;
+        // Inițializare Firebase
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getDatabase(app);
 
-        let db;
-        let auth;
-        let userId = null;
-        let isAuthReady = false;
-
-        // Funcția de inițializare și Autentificare
-        async function initializeAppAndAuth() {
-            try {
-                if (Object.keys(firebaseConfig).length === 0) {
-                    throw new Error("Configurația Firebase lipsește.");
-                }
-                const app = initializeApp(firebaseConfig);
-                db = getFirestore(app);
-                auth = getAuth(app);
-
-                // Autentificare
-                await new Promise((resolve) => {
-                    onAuthStateChanged(auth, async (user) => {
-                        if (user) {
-                            userId = user.uid;
-                        } else {
-                            if (initialAuthToken) {
-                                await signInWithCustomToken(auth, initialAuthToken);
-                            } else {
-                                await signInAnonymously(auth);
-                            }
-                            userId = auth.currentUser.uid;
-                        }
-                        isAuthReady = true;
-                        statusMessage.className = 'bg-green-100 border border-green-300 text-green-800 px-4 py-3 rounded-lg mb-6';
-                        statusMessage.innerHTML = `Autentificare reușită! ID Utilizator: <span class="font-mono text-sm">${userId}</span>`;
-                        resolve();
-                    });
-                });
-            } catch (error) {
-                console.error("Eroare la inițializarea Firebase sau autentificare:", error);
-                statusMessage.className = 'bg-red-100 border border-red-300 text-red-800 px-4 py-3 rounded-lg mb-6';
-                statusMessage.textContent = `EROARE: Nu s-a putut inițializa aplicația. Vezi consola pentru detalii.`;
-            }
-        }
-
-        // --- Functia de Postare ---
-        window.postare = async function() {
-            if (!isAuthReady || !db || !userId) {
-                statusMessage.textContent = "Așteaptă finalizarea autentificării înainte de a posta.";
-                return;
-            }
-
-            const contentInput = document.getElementById('post-content');
-            const content = contentInput.value.trim();
-
-            if (content.length === 0) {
-                alertUser("Te rog introdu un conținut pentru postare.");
-                return;
-            }
-
-            postButton.disabled = true;
-            postButton.textContent = 'Se postează...';
-
-            try {
-                // Calea colecției pentru date Publice
-                const collectionPath = `artifacts/${appId}/public/data/posts`;
-                
-                // Adaugă documentul în Firestore
-                await addDoc(collection(db, collectionPath), {
-                    content: content,
-                    userId: userId,
-                    timestamp: Date.now() 
-                });
-
-                contentInput.value = ''; // Golește câmpul după postare reușită
-                alertUser("Postare trimisă cu succes!", 'success');
-
-            } catch (error) {
-                console.error("Eroare la adăugarea documentului:", error);
-                alertUser(`Eroare la postare: ${error.message}`, 'error');
-            } finally {
-                postButton.disabled = false;
-                postButton.textContent = 'Postează';
-            }
-        }
+        // Referințe DOM
+        const postsContainer = document.getElementById('postsContainer');
+        const postForm = document.getElementById('postForm');
+        const postTitleInput = document.getElementById('postTitle');
+        const postContentInput = document.getElementById('postContent');
+        const authSection = document.getElementById('authSection');
+        const composerSection = document.getElementById('composer');
+        const logoutBtn = document.getElementById('logoutBtn');
+        const headerProfilePic = document.getElementById('headerProfilePic');
+        const postMessage = document.getElementById('postMessage');
+        const authMessage = document.getElementById('authMessage');
+        const authEmail = document.getElementById('authEmail');
+        const authPassword = document.getElementById('authPassword');
+        const addPostBtn = document.getElementById('addPostBtn');
         
-        // --- Funcția de Ascultare și Afișare a Postărilor în Timp Real ---
-        function listenForPosts() {
-            if (!isAuthReady || !db) return;
+        document.getElementById('year').textContent = new Date().getFullYear();
 
-            // Calea colecției (aceeași ca la postare)
-            const collectionPath = `artifacts/${appId}/public/data/posts`;
-            const q = query(collection(db, collectionPath));
-            
-            // onSnapshot asigură sincronizarea în timp real
-            onSnapshot(q, (snapshot) => {
-                const posts = [];
-                snapshot.forEach((doc) => {
-                    const data = doc.data();
-                    posts.push({ id: doc.id, ...data });
-                });
+        let currentUser = null; 
 
-                // Sortează postările după timestamp (cel mai nou primul)
-                posts.sort((a, b) => b.timestamp - a.timestamp);
-
-                renderPosts(posts);
-            }, (error) => {
-                console.error("Eroare la ascultarea postărilor:", error);
-                postsList.innerHTML = `<p class="text-center text-red-500">Eroare la încărcarea postărilor: ${error.message}</p>`;
-            });
-        }
-
-        // --- Funcția de Randare a Postărilor în UI ---
-        function renderPosts(posts) {
-            postsList.innerHTML = ''; // Golește lista existentă
-            document.getElementById('loading-posts')?.remove(); // Elimină mesajul de încărcare
-
-            if (posts.length === 0) {
-                postsList.innerHTML = `<p class="text-center text-gray-500">Nu există postări încă. Fii primul!</p>`;
-                return;
-            }
-
-            posts.forEach(post => {
-                const isMine = post.userId === userId;
-                
-                const postElement = document.createElement('div');
-                postElement.className = 'post-card p-4 border border-gray-200 rounded-xl shadow-lg bg-white transition duration-150';
-                
-                const date = post.timestamp ? new Date(post.timestamp).toLocaleTimeString('ro-RO', { year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }) : 'Necunoscută';
-
-                postElement.innerHTML = `
-                    <p class="text-gray-800 whitespace-pre-wrap mb-3">${post.content}</p>
-                    <div class="border-t pt-2 mt-2 flex justify-between items-center text-xs text-gray-500">
-                        <span class="font-medium ${isMine ? 'text-indigo-600' : 'text-gray-600'}">
-                            Postat de: ${isMine ? 'Mine' : post.userId.substring(0, 8) + '...'}
-                        </span>
-                        <span>
-                            ${date}
-                        </span>
-                    </div>
-                `;
-                postsList.appendChild(postElement);
-            });
-        }
-
-        // --- Funcție ajutătoare pentru alertă non-blocking ---
-        function alertUser(message, type = 'info') {
-            let container = document.getElementById('alert-container');
-            if (!container) {
-                container = document.createElement('div');
-                container.id = 'alert-container';
-                container.className = 'fixed top-4 right-4 z-50 space-y-2';
-                document.body.appendChild(container);
-            }
-
-            const alertDiv = document.createElement('div');
-            let colorClass;
-            
-            if (type === 'success') {
-                colorClass = 'bg-green-500';
-            } else if (type === 'error') {
-                colorClass = 'bg-red-500';
+        // *************************************************************************************************
+        // 1. GESTIONAREA AUTENTIFICĂRII
+        // *************************************************************************************************
+        
+        onAuthStateChanged(auth, (user) => {
+            if (user) {
+                currentUser = user;
+                authSection.style.display = 'none';
+                composerSection.style.display = 'block';
+                logoutBtn.style.display = 'block';
+                addPostBtn.style.visibility = 'visible';
+                headerProfilePic.textContent = user.email.substring(0, 2).toUpperCase();
+                loadPosts(); 
             } else {
-                colorClass = 'bg-blue-500';
-            }
-
-            alertDiv.className = `${colorClass} text-white px-6 py-3 rounded-lg shadow-xl opacity-0 transform translate-x-full transition-all duration-300`;
-            alertDiv.textContent = message;
-            container.appendChild(alertDiv);
-
-            // Animație de intrare
-            setTimeout(() => {
-                alertDiv.classList.remove('opacity-0', 'translate-x-full');
-            }, 10);
-
-            // Animație de ieșire și ștergere
-            setTimeout(() => {
-                alertDiv.classList.add('opacity-0', 'translate-x-full');
-                alertDiv.addEventListener('transitionend', () => alertDiv.remove());
-            }, 4000);
-        }
-
-        // --- Start Application ---
-        initializeAppAndAuth().then(() => {
-            if (db && userId) {
-                listenForPosts();
+                currentUser = null;
+                authSection.style.display = 'block';
+                composerSection.style.display = 'none';
+                logoutBtn.style.display = 'none';
+                addPostBtn.style.visibility = 'hidden';
+                headerProfilePic.textContent = '👤';
+                postsContainer.innerHTML = "<div class='post-card'>Te rugăm să te autentifici pentru a vedea postările.</div>";
             }
         });
+
+        document.getElementById('signupBtn').addEventListener('click', async () => {
+            try {
+                await createUserWithEmailAndPassword(auth, authEmail.value, authPassword.value);
+                authMessage.textContent = 'Înregistrare reușită. Ești logat!';
+                authMessage.className = 'message success';
+            } catch (error) {
+                authMessage.textContent = `Eroare: ${error.message}`;
+                authMessage.className = 'message error';
+            }
+        });
+
+        document.getElementById('loginBtn').addEventListener('click', async () => {
+            try {
+                await signInWithEmailAndPassword(auth, authEmail.value, authPassword.value);
+                authMessage.textContent = 'Autentificare reușită!';
+                authMessage.className = 'message success';
+            } catch (error) {
+                authMessage.textContent = `Eroare: ${error.message}`;
+                authMessage.className = 'message error';
+            }
+        });
+
+        logoutBtn.addEventListener('click', async () => {
+            await signOut(auth);
+        });
+
+        // *************************************************************************************************
+        // 2. GESTIONAREA POSTĂRILOR (Realtime Database)
+        // *************************************************************************************************
+
+        function escapeHtml(str) {
+            if (!str && str !== "") return "";
+            return String(str).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/\"/g, "&quot;").replace(/\'/g, "&#39;");
+        }
+
+        // Adaugă Postare
+        postForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            if (!currentUser) return;
+
+            const title = postTitleInput.value.trim();
+            const content = postContentInput.value.trim();
+
+            if (title.length < 3 || content.length < 10) {
+                postMessage.textContent = "Titlul min. 3, Conținut min. 10 caractere.";
+                postMessage.className = 'message error';
+                return;
+            }
+
+            const submitBtn = postForm.querySelector('button[type=submit]');
+            submitBtn.disabled = true;
+            submitBtn.textContent = "Se publică...";
+
+            const newPost = {
+                title: title,
+                content: content,
+                authorId: currentUser.uid,
+                authorEmail: currentUser.email,
+                date: serverTimestamp()
+            };
+
+            try {
+                await push(ref(db, 'posts'), newPost);
+                postForm.reset();
+                postMessage.textContent = 'Postare publicată cu succes!';
+                postMessage.className = 'message success';
+                setTimeout(() => postMessage.textContent = '', 3000);
+            } catch (error) {
+                postMessage.textContent = `Eroare la publicare: ${error.message}`;
+                postMessage.className = 'message error';
+            } finally {
+                submitBtn.disabled = false;
+                submitBtn.textContent = "Publică";
+            }
+        });
+
+        // Încarcă și Randează Postările în Timp Real
+        function loadPosts() {
+            const postsRef = ref(db, 'posts');
+            // Interogare pentru a sorta după dată (cel mai nou în jos în baza de date)
+            const sortedQuery = query(postsRef, orderByChild('date'));
+
+            onValue(sortedQuery, (snapshot) => {
+                postsContainer.innerHTML = '';
+                if (!snapshot.exists()) {
+                    postsContainer.innerHTML = "<div class='post-card'>Nu există postări încă. Fii primul!</div>";
+                    return;
+                }
+
+                const postsArray = [];
+                snapshot.forEach(childSnapshot => {
+                    // Adaugă postarea în fața listei (pentru a avea cel mai nou primul vizual)
+                    postsArray.unshift({
+                        id: childSnapshot.key,
+                        ...childSnapshot.val()
+                    });
+                });
+
+                postsArray.forEach(post => {
+                    const postElement = createPostElement(post);
+                    postsContainer.appendChild(postElement);
+                    loadComments(post.id, postElement);
+                });
+            });
+        }
+
+        // Crearea elementului DOM pentru o postare
+        function createPostElement(p) {
+            const timestamp = p.date;
+            const dateStr = timestamp ? new Date(timestamp).toLocaleString('ro-RO') : 'Data necunoscută';
+            const initials = p.authorEmail ? p.authorEmail.substring(0, 2).toUpperCase() : '??';
+
+            const div = document.createElement('div');
+            div.className = 'post-card';
+            div.innerHTML = `
+                <div class="post-header">
+                    <div class="profile-pic">${initials}</div>
+                    <div>
+                        <div class="username">${escapeHtml(p.title)}</div>
+                        <div class="time">${escapeHtml(p.authorEmail)} · ${dateStr}</div>
+                    </div>
+                </div>
+                <div class="post-content">${escapeHtml(p.content)}</div>
+                
+                <div class="post-actions" style="text-align: right;">
+                    ${currentUser && currentUser.uid === p.authorId ? 
+                        `<button class="btn btn-ghost delete-post-btn" data-id="${p.id}">🗑️ Șterge</button>` : ''
+                    }
+                </div>
+
+                <!-- Secțiunea de Comentarii -->
+                <div class="comment-section">
+                    <div id="comments-container-${p.id}"></div>
+                    
+                    ${currentUser ? `
+                        <div class="comment-form">
+                            <input type="text" id="comment-input-${p.id}" placeholder="Adaugă un comentariu..." >
+                            <button class="btn btn-primary submit-comment-btn" data-post-id="${p.id}">Trimite</button>
+                        </div>
+                    ` : '<p style="font-size: 14px; margin-top: 10px;">Autentifică-te pentru a comenta.</p>'}
+                </div>
+            `;
+
+            // Adaugă listener pentru ștergere
+            if (currentUser && currentUser.uid === p.authorId) {
+                div.querySelector(".delete-post-btn").addEventListener("click", async (e) => {
+                    // Am înlocuit alert() cu o modală (confirm() simplificat)
+                    if (confirm("Ești sigur că vrei să ștergi această postare și toate comentariile sale?")) {
+                        const postId = e.target.getAttribute('data-id');
+                        await remove(ref(db, `posts/${postId}`));
+                    }
+                });
+            }
+
+            // Adaugă listener pentru comentariu
+            if (currentUser) {
+                div.querySelector(`.submit-comment-btn`).addEventListener('click', () => {
+                    const postId = p.id;
+                    const commentInput = div.querySelector(`#comment-input-${postId}`);
+                    submitComment(postId, commentInput.value.trim());
+                    commentInput.value = '';
+                });
+            }
+
+            return div;
+        }
+
+        // *************************************************************************************************
+        // 3. GESTIONAREA COMENTARIILOR
+        // *************************************************************************************************
+        
+        // Adaugă Comentariu
+        function submitComment(postId, commentText) {
+            if (!currentUser || !commentText) return;
+
+            const newComment = {
+                text: commentText,
+                authorEmail: currentUser.email,
+                date: serverTimestamp()
+            };
+
+            push(ref(db, `posts/${postId}/comments`), newComment)
+                .catch(error => console.error('Eroare la salvarea comentariului:', error));
+        }
+
+        // Încarcă și Randează Comentariile în Timp Real
+        function loadComments(postId, postElement) {
+            const commentsRef = ref(db, `posts/${postId}/comments`);
+            const commentsContainer = postElement.querySelector(`#comments-container-${postId}`);
+            const sortedQuery = query(commentsRef, orderByChild('date'));
+
+            onValue(sortedQuery, (snapshot) => {
+                commentsContainer.innerHTML = '';
+                
+                const commentsArray = [];
+                snapshot.forEach(childSnapshot => {
+                    commentsArray.push(childSnapshot.val());
+                });
+
+                if (commentsArray.length === 0) {
+                    commentsContainer.innerHTML = '<p class="comments">Fii primul care comentează!</p>';
+                    return;
+                }
+
+                // commentsContainer.innerHTML = '<h4>Comentarii:</h4>'; // Mutat în template
+                
+                commentsArray.forEach(c => {
+                    const date = c.date ? new Date(c.date).toLocaleTimeString('ro-RO', {hour: '2-digit', minute:'2-digit'}) : '';
+                    
+                    const p = document.createElement('div');
+                    p.className = 'comment-item';
+                    p.innerHTML = `<span class="comment-author">${escapeHtml(c.authorEmail)} (${date}):</span> ${escapeHtml(c.text)}`;
+                    commentsContainer.appendChild(p);
+                });
+            });
+        }
+
+        // Diverse
+        document.getElementById('clearBtn').addEventListener('click', () => {
+            postForm.reset();
+        });
+
+        document.getElementById('addPostBtn').addEventListener('click', () => {
+            composerSection.scrollIntoView({ behavior: 'smooth' });
+            postTitleInput.focus();
+        });
+
+        // Încarcă starea inițială (onAuthStateChanged va gestiona vizibilitatea)
+        if (!currentUser) loadPosts(); 
 
     </script>
 </body>
 </html>
-
