@@ -137,24 +137,47 @@ footer { margin-top: 40px; text-align: center; padding: 20px; color: var(--muted
 </footer>
 
 <script type="module">
+// Firebase modular v9 imports
 import { initializeApp } from "https://www.gstatic.com/firebasejs/9.0.0/firebase-app.js";
-import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/9.0.0/firebase-auth.js";
-import { getDatabase, ref, push, serverTimestamp, query, orderByChild, onChildAdded, onChildChanged, onChildRemoved, remove, set } from "https://www.gstatic.com/firebasejs/9.0.0/firebase-database.js";
+import {
+  getAuth,
+  createUserWithEmailAndPassword,
+  signInWithEmailAndPassword,
+  onAuthStateChanged,
+  signOut
+} from "https://www.gstatic.com/firebasejs/9.0.0/firebase-auth.js";
+import {
+  getDatabase,
+  ref,
+  push,
+  serverTimestamp,
+  query,
+  orderByChild,
+  onChildAdded,
+  onChildChanged,
+  onChildRemoved,
+  remove,
+  set,
+  off
+} from "https://www.gstatic.com/firebasejs/9.0.0/firebase-database.js";
 
-// For Firebase JS SDK v7.20.0 and later, measurementId is optional
+// --- CONFIG: înlocuiește databaseURL din consola ta Firebase dacă e altul ---
 const firebaseConfig = {
   apiKey: "AIzaSyDWfXEoPf7Nj9Dgey6f8P3UAyIKMjFUhks",
   authDomain: "urblog-543a4.firebaseapp.com",
+  databaseURL: "https://urblog-543a4-default-rtdb.firebaseio.com",
   projectId: "urblog-543a4",
-  storageBucket: "urblog-543a4.firebasestorage.app",
+  storageBucket: "urblog-543a4.appspot.com",
   messagingSenderId: "984163939329",
   appId: "1:984163939329:web:be8d66d45f6d1badb4bc00",
   measurementId: "G-7KRZR0X1NG"
 };
+
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const db = getDatabase(app);
 
+// DOM
 const postsContainer = document.getElementById('postsContainer');
 const postForm = document.getElementById('postForm');
 const postTitleInput = document.getElementById('postTitle');
@@ -168,23 +191,41 @@ const authMessage = document.getElementById('authMessage');
 const authEmail = document.getElementById('authEmail');
 const authPassword = document.getElementById('authPassword');
 const addPostBtn = document.getElementById('addPostBtn');
-document.getElementById('year').textContent = new Date().getFullYear();
+const yearSpan = document.getElementById('year');
+yearSpan.textContent = new Date().getFullYear();
 
 let currentUser = null;
 
+// Utility
 function escapeHtml(str) {
-    if (!str && str !== "") return "";
-    return String(str).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/\"/g, "&quot;").replace(/\'/g, "&#39;");
+    if (str === null || str === undefined) return "";
+    return String(str).replace(/&/g, "&amp;").replace(/</g, "&lt;")
+                      .replace(/>/g, "&gt;").replace(/\"/g, "&quot;")
+                      .replace(/\'/g, "&#39;");
 }
 
 function formatDate(ts) {
-    if (!ts) return 'Data necunoscută';
-    const t = (typeof ts === 'object' && ts.hasOwnProperty('seconds')) ? ts.seconds * 1000 : ts;
-    const d = new Date(t);
-    return isNaN(d.getTime()) ? 'Data necunoscută' : d.toLocaleString('ro-RO');
+    if (!ts && ts !== 0) return 'Data necunoscută';
+    try {
+        // If it's an object with seconds (Firestore-like)
+        if (typeof ts === 'object' && ts !== null) {
+            if (ts.seconds) return new Date(ts.seconds * 1000).toLocaleString('ro-RO');
+            if (ts.hasOwnProperty('toMillis') && typeof ts.toMillis === 'function') {
+                return new Date(ts.toMillis()).toLocaleString('ro-RO');
+            }
+            // If it's a number-like in object (RTDB sometimes)
+            if (ts['.sv']) return 'Data server (neprocesată)';
+        }
+        // if it's numeric timestamp (ms)
+        const n = Number(ts);
+        if (!isNaN(n)) return new Date(n).toLocaleString('ro-RO');
+    } catch (e) {
+        // fallthrough
+    }
+    return 'Data necunoscută';
 }
 
-// AUTENTIFICARE
+// --- AUTH STATE ---
 onAuthStateChanged(auth, (user) => {
     if (user) {
         currentUser = user;
@@ -192,7 +233,8 @@ onAuthStateChanged(auth, (user) => {
         composerSection.style.display = 'block';
         logoutBtn.style.display = 'block';
         addPostBtn.style.visibility = 'visible';
-        headerProfilePic.textContent = user.email.substring(0,2).toUpperCase();
+        headerProfilePic.textContent = user.email ? user.email.substring(0,2).toUpperCase() : 'U';
+        // Load posts (ensure we don't reattach duplicate listeners)
         loadPosts();
     } else {
         currentUser = null;
@@ -202,37 +244,75 @@ onAuthStateChanged(auth, (user) => {
         addPostBtn.style.visibility = 'hidden';
         headerProfilePic.textContent = '👤';
         postsContainer.innerHTML = "<div class='post-card'>Te rugăm să te autentifici pentru a vedea postările.</div>";
+        // Cleanup listeners
+        try {
+            const postsRef = ref(db, 'posts');
+            off(postsRef);
+        } catch (e) { /* ignore */ }
     }
 });
 
+// Signup
 document.getElementById('signupBtn').addEventListener('click', async () => {
+    authMessage.textContent = '';
     try {
         await createUserWithEmailAndPassword(auth, authEmail.value, authPassword.value);
         authMessage.textContent = 'Înregistrare reușită. Ești logat!';
         authMessage.className = 'message success';
     } catch (error) {
-        authMessage.textContent = `Eroare: ${error.message}`;
+        let msg = 'Eroare: ' + (error && error.message ? error.message : 'Necunoscută');
+        if (error && error.code) {
+            switch (error.code) {
+                case 'auth/invalid-email': msg = 'Email invalid.'; break;
+                case 'auth/weak-password': msg = 'Parolă prea slabă (minim 6 caractere).'; break;
+                case 'auth/email-already-in-use': msg = 'Email-ul este deja folosit.'; break;
+            }
+        }
+        authMessage.textContent = msg;
         authMessage.className = 'message error';
     }
 });
 
+// Login
 document.getElementById('loginBtn').addEventListener('click', async () => {
+    authMessage.textContent = '';
     try {
         await signInWithEmailAndPassword(auth, authEmail.value, authPassword.value);
         authMessage.textContent = 'Autentificare reușită!';
         authMessage.className = 'message success';
     } catch (error) {
-        authMessage.textContent = `Eroare: ${error.message}`;
+        let msg = 'Eroare la autentificare.';
+        if (error && error.code) {
+            switch (error.code) {
+                case 'auth/invalid-email': msg = 'Email invalid.'; break;
+                case 'auth/user-not-found': msg = 'Utilizator inexistent.'; break;
+                case 'auth/wrong-password': msg = 'Parolă incorectă.'; break;
+                default: msg = error.message || msg;
+            }
+        }
+        authMessage.textContent = msg;
         authMessage.className = 'message error';
     }
 });
 
-logoutBtn.addEventListener('click', async () => { await signOut(auth); });
+// Logout
+logoutBtn.addEventListener('click', async () => {
+    try {
+        await signOut(auth);
+    } catch (e) {
+        console.error('Logout error', e);
+    }
+});
 
-// POSTARE NOUĂ
+// --- POSTARE NOUĂ ---
 postForm.addEventListener('submit', async (e) => {
     e.preventDefault();
-    if (!currentUser) return;
+    postMessage.textContent = '';
+    if (!currentUser) {
+        postMessage.textContent = 'Trebuie să fii autentificat pentru a publica.';
+        postMessage.className = 'message error';
+        return;
+    }
     const title = postTitleInput.value.trim();
     const content = postContentInput.value.trim();
     if (title.length < 3 || content.length < 10) {
@@ -248,92 +328,153 @@ postForm.addEventListener('submit', async (e) => {
         postForm.reset();
         postMessage.textContent = 'Postare publicată cu succes!';
         postMessage.className = 'message success';
-        setTimeout(() => postMessage.textContent='', 3000);
+        setTimeout(() => postMessage.textContent = '', 3000);
     } catch (error) {
-        postMessage.textContent = `Eroare la publicare: ${error.message}`;
+        postMessage.textContent = `Eroare la publicare: ${error && error.message ? error.message : 'necunoscută'}`;
         postMessage.className = 'message error';
-    } finally { submitBtn.disabled = false; submitBtn.textContent = "Publică"; }
+    } finally {
+        submitBtn.disabled = false; submitBtn.textContent = "Publică";
+    }
 });
 
-// ÎNCĂRCARE POSTĂRI
+document.getElementById('clearBtn').addEventListener('click', () => {
+    postForm.reset();
+    postMessage.textContent = '';
+});
+
+// --- LOAD POSTS & COMMENTS ---
+let attachedPostListener = false;
 function loadPosts() {
-    const postsRef = ref(db,'posts');
-    const sortedQuery = query(postsRef, orderByChild('date'));
+    const postsRef = ref(db, 'posts');
+    try { off(postsRef); } catch(e) {}
     postsContainer.innerHTML = '';
+    const sortedQuery = query(postsRef, orderByChild('date'));
+    // Use onChildAdded
     onChildAdded(sortedQuery, (snapshot) => {
-        const post = {id: snapshot.key,...snapshot.val()};
+        const post = { id: snapshot.key, ...snapshot.val() };
+        // create element and prepend
         const postElement = createPostElement(post);
+        // Prepend so latest appear on top
         postsContainer.prepend(postElement);
+        // load comments for this post
         loadComments(post.id, postElement);
     });
+    attachedPostListener = true;
 }
 
 function createPostElement(p) {
     const dateStr = formatDate(p.date);
-    const initials = p.authorEmail ? p.authorEmail.substring(0,2).toUpperCase():'??';
+    const initials = p.authorEmail ? p.authorEmail.substring(0,2).toUpperCase() : '??';
     const div = document.createElement('div');
-    div.className='post-card';
-    div.id=`post-${p.id}`;
-    div.innerHTML=`
+    div.className = 'post-card';
+    div.id = `post-${p.id}`;
+    // Build innerHTML safely
+    div.innerHTML = `
         <div class="post-header">
-            <div class="profile-pic">${initials}</div>
+            <div class="profile-pic">${escapeHtml(initials)}</div>
             <div>
                 <div class="username">${escapeHtml(p.title)}</div>
-                <div class="time">${escapeHtml(p.authorEmail)} · ${dateStr}</div>
+                <div class="time">${escapeHtml(p.authorEmail || 'Anonim')} · ${escapeHtml(dateStr)}</div>
             </div>
         </div>
         <div class="post-content">${escapeHtml(p.content)}</div>
         <div class="post-actions" style="text-align: right;">
-            ${currentUser && currentUser.uid===p.authorId ? `<button class="btn btn-ghost delete-post-btn" data-id="${p.id}">🗑️ Șterge</button>`:''}
+            ${currentUser && currentUser.uid === p.authorId ? `<button class="btn btn-ghost delete-post-btn" data-id="${p.id}">🗑️ Șterge</button>` : ''}
         </div>
         <div class="comment-section">
             <div id="comments-container-${p.id}"></div>
-            ${currentUser?`
+            ${currentUser ? `
                 <div class="comment-form">
                     <input type="text" id="comment-input-${p.id}" placeholder="Adaugă un comentariu...">
                     <button class="btn btn-primary submit-comment-btn" data-id="${p.id}">Trimite</button>
-                </div>`:'<p style="color: var(--muted);">Autentifică-te pentru a comenta.</p>'}
+                </div>` : `<p style="color: var(--muted);">Autentifică-te pentru a comenta.</p>`}
         </div>
     `;
-    if(currentUser && currentUser.uid===p.authorId){
-        div.querySelector('.delete-post-btn').addEventListener('click', async ()=>{
-            if(confirm("Ștergi postarea?")) await remove(ref(db,'posts/'+p.id));
+    // Attach delete listener if exists
+    const deleteBtn = div.querySelector('.delete-post-btn');
+    if (deleteBtn) {
+        deleteBtn.addEventListener('click', async () => {
+            const yes = confirm('Ștergi postarea?');
+            if (!yes) return;
+            const id = deleteBtn.getAttribute('data-id');
+            if (!id) return;
+            try {
+                // Remove post
+                await remove(ref(db, 'posts/' + id));
+                // Also remove comments for this post
+                await remove(ref(db, 'comments/' + id));
+                // Remove element from DOM
+                const el = document.getElementById(`post-${id}`);
+                if (el && el.parentNode) el.parentNode.removeChild(el);
+            } catch (e) {
+                console.error('Eroare la ștergere', e);
+                alert('Eroare la ștergere. Vezi consola.');
+            }
         });
     }
-    if(currentUser) div.querySelector('.submit-comment-btn').addEventListener('click',()=>submitComment(p.id));
+
+    // Attach comment submit if currentUser
+    const commentBtn = div.querySelector('.submit-comment-btn');
+    if (commentBtn) {
+        commentBtn.addEventListener('click', () => submitComment(p.id));
+    }
+
     return div;
 }
 
-// COMMENTS
-async function submitComment(postId){
+// Submit comment
+async function submitComment(postId) {
     const input = document.getElementById(`comment-input-${postId}`);
-    if(!input) return;
-    const text=input.value.trim();
-    if(!text||text.length<2) return;
-    const newComment={text,authorEmail:currentUser.email,authorId:currentUser.uid,date:serverTimestamp()};
-    try{await push(ref(db,`comments/${postId}`),newComment);input.value='';}catch(e){console.error(e);}
+    if (!input) return;
+    const text = input.value.trim();
+    if (!text || text.length < 2) return;
+    if (!currentUser) {
+        alert('Trebuie să fii autentificat pentru a comenta.');
+        return;
+    }
+    const newComment = {
+        text,
+        authorEmail: currentUser.email,
+        authorId: currentUser.uid,
+        date: serverTimestamp()
+    };
+    try {
+        await push(ref(db, `comments/${postId}`), newComment);
+        input.value = '';
+    } catch (e) {
+        console.error('Eroare la adăugare comentariu', e);
+        alert('Eroare la trimitere comentariu.');
+    }
 }
-function loadComments(postId,postElement){
-    const container=postElement.querySelector(`#comments-container-${postId}`);
-    container.innerHTML='';
-    const commentsRef=ref(db,`comments/${postId}`);
-    const sortedQuery=query(commentsRef,orderByChild('date'));
-    onChildAdded(sortedQuery,(snapshot)=>{
-        const c={id:snapshot.key,...snapshot.val()};
-        const dateStr=formatDate(c.date);
-        const div=document.createElement('div');
-        div.className='comment-item';
-        div.id=`comment-${c.id}`;
-        div.innerHTML=`
-            <span class="comment-author">${escapeHtml(c.authorEmail)}</span>
-            <span class="comment-time">${dateStr}</span>
-            <div class="comment-text">${escapeHtml(c.text)}</div>
+
+// Load comments for a post element (ensures off() before attach)
+function loadComments(postId, postElement) {
+    const container = postElement.querySelector(`#comments-container-${postId}`);
+    if (!container) return;
+    container.innerHTML = '';
+    const commentsRef = ref(db, `comments/${postId}`);
+    try { off(commentsRef); } catch(e) {}
+    const sortedQuery = query(commentsRef, orderByChild('date'));
+    onChildAdded(sortedQuery, (snapshot) => {
+        const c = { id: snapshot.key, ...snapshot.val() };
+        const dateStr = formatDate(c.date);
+        const div = document.createElement('div');
+        div.className = 'comment-item';
+        div.id = `comment-${c.id}`;
+        div.innerHTML = `
+            <div>
+                <span class="comment-author">${escapeHtml(c.authorEmail || 'Anonim')}</span>
+                <span class="comment-time">${escapeHtml(dateStr)}</span>
+            </div>
+            <div class="comment-text" style="margin-top:6px;">${escapeHtml(c.text)}</div>
         `;
         container.appendChild(div);
     });
 }
+
 </script>
 </body>
 </html>
+
 
 
