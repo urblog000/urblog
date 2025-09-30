@@ -137,6 +137,48 @@ footer { margin-top: 40px; text-align: center; padding: 20px; color: var(--muted
 </footer>
 
 <script type="module">
+    // Exemplu conceptual pentru Cloud Firestore
+import { getFirestore, collection, addDoc } from "firebase/firestore";
+
+const db = getFirestore();
+const postsCollectionRef = collection(db, 'posts'); // Referința la colecția "posts"
+
+const newPostData = {
+  author: "Nume Utilizator",
+  title: "Titlul Postării",
+  content: "Conținutul postării...",
+  timestamp: new Date().toISOString()
+};
+
+addDoc(postsCollectionRef, newPostData)
+  .then((docRef) => {
+    console.log("Postare adăugată cu ID: ", docRef.id);
+  })
+  .catch((error) => {
+    console.error("Eroare la adăugarea postării: ", error);
+  });
+
+    // Exemplu conceptual pentru Realtime Database
+import { getDatabase, ref, push } from "firebase/database";
+
+const db = getDatabase();
+const postsRef = ref(db, 'posts'); // Referința la "posts"
+
+const newPostData = {
+  author: "Nume Utilizator",
+  title: "Titlul Postării",
+  content: "Conținutul postării...",
+  timestamp: new Date().toISOString()
+};
+
+push(postsRef, newPostData)
+  .then(() => {
+    console.log("Postare adăugată cu succes!");
+  })
+  .catch((error) => {
+    console.error("Eroare la adăugarea postării: ", error);
+  });
+
 // Firebase modular v9 imports
 import { initializeApp } from "https://www.gstatic.com/firebasejs/9.0.0/firebase-app.js";
 import {
